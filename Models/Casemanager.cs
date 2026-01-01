@@ -1,6 +1,9 @@
-﻿namespace PlanSysteem.Models;
+﻿using System.Collections.Generic;
 
-public class Casemanager
+namespace PlanSysteem.Models
 {
-    
+    public sealed class Casemanager : Hulpinstantie
+    {
+        public List<Gedetineerde> Caseload { get; } = new();
+    }
 }

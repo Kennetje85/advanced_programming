@@ -1,7 +1,7 @@
-﻿namespace PlanSysteem.Models;
-
-public class GeestelijkVerzorger
+﻿namespace PlanSysteem.Models
 {
-    public string? specialisatie { get; set; }
-
+    public sealed class GeestelijkVerzorger : Hulpinstantie
+    {
+        public string? Specialisatie { get; set; }
+    }
 }

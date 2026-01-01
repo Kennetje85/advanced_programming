@@ -1,5 +1,19 @@
+# Build
 bin/
 obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
+packages/
+
+# Visual Studio
+.vs/
+
+# JetBrains (Rider / IntelliJ)
+.idea/
+*.iml
+.idea/**
+
+# ReSharper
+_ReSharper.Caches/
+
+# OS
+Thumbs.db
+.DS_Store
