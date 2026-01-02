@@ -1,88 +1,124 @@
-﻿using Hanssens.Net;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Hanssens.Net;
 using PlanSysteem.Services;
 
 namespace PlanSysteem.Models
 {
-    public abstract class Hulpinstantie
+    // Hulpinstantie is nu een Account-eigenaar (implementeert IAccountOwner).
+    public abstract class Hulpinstantie : IAccountOwner
     {
         public int Id { get; set; }
         public string Naam { get; set; } = "";
         public Agenda Agenda { get; } = new();
         public Account Account { get; set; } = default!;
-        
-        
 
+        // Robuuste interactieve flow: blijft in een loop totdat gebruiker terugkeert.
         public void RunFlowHulpinstantie()
         {
-            using var localStorage = new LocalStorage();
-            localStorage.Load();
-
-            Console.WriteLine("1. Afspraken inzien.\n2. Beschikbaarheid opgeven");
-            Console.WriteLine("Antwoord doormiddel van een cijfer");
-            if (!int.TryParse(Console.ReadLine(), out var k)) return;
-
-            switch (k)
+            try
             {
-                case 1:
+                using var localStorage = new LocalStorage();
+                localStorage.Load();
+
+                while (true)
                 {
-                    using var ls = new LocalStorage();
-                    ls.Load();
-
-                    var key = $"Afspraken:hulp:{Id}";
-                    if (!ls.Exists(key))
+                    Console.WriteLine();
+                    Console.WriteLine("1. Afspraken inzien");
+                    Console.WriteLine("2. Beschikbaarheid opgeven");
+                    Console.WriteLine("0. Terug / Uitloggen");
+                    Console.Write("Keuze: ");
+                    var input = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(input))
                     {
-                        Console.WriteLine($"{Naam} heeft nog geen afspraken.");
-                        break;
+                        Console.WriteLine("Ongeldige invoer.");
+                        continue;
                     }
 
-                    var afspraken = ls.Get<List<string>>(key);
-                    if (afspraken == null || afspraken.Count == 0)
+                    if (!int.TryParse(input, out var k))
                     {
-                        Console.WriteLine($"{Naam} heeft nog geen afspraken.");
-                        break;
+                        Console.WriteLine("Ongeldige invoer, voer een nummer in.");
+                        continue;
                     }
 
-                    Console.WriteLine($"Afspraken voor {Naam}:");
-                    for (int i = 0; i < afspraken.Count; i++)
+                    if (k == 0)
                     {
-                        Console.WriteLine($"{i + 1}. {afspraken[i]}");
+                        Console.WriteLine("Terug naar hoofdmenu...");
+                        return;
                     }
 
-                    break;
-                }
-
-
-                case 2:
-                    Console.WriteLine("Voer in als: YYYY-MM-DD HH:mm,HH:mm");
-                    var s = Console.ReadLine();
-                    if (TryParse(s, out var datum, out var start, out var eind))
+                    switch (k)
                     {
-                        var beschikbaarheid = new Beschikbaarheid
+                        case 1:
                         {
+                            // (her)laad de storage direct voordat we uitlezen
+                            localStorage.Load();
 
-                            Id = Guid.NewGuid().GetHashCode(),
-                            Datum = datum,
-                            StartTijd = start,
-                            EindTijd = eind
-                        };
+                            var key = $"Afspraken:hulp:{Id}";
+                            var afspraken = localStorage.Exists(key)
+                                ? localStorage.Get<List<string>>(key) ?? new List<string>()
+                                : new List<string>();
 
-                        Agenda.ToevoegenBeschikbaarheid(beschikbaarheid);
+                            if (afspraken.Count == 0)
+                            {
+                                Console.WriteLine($"{Naam} heeft nog geen afspraken.");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Afspraken voor {Naam} (totaal: {afspraken.Count}):");
+                                for (int i = 0; i < afspraken.Count; i++)
+                                    Console.WriteLine($"{i + 1}. {afspraken[i]}");
+                            }
+                            break;
+                        }
 
-                        var key = $"Beschikbaarheid:{Id}";
-                        var opgeslagen = localStorage.Exists(key)
-                            ? localStorage.Get<List<Beschikbaarheid>>(key) ?? new List<Beschikbaarheid>()
-                            : new List<Beschikbaarheid>();
+                        case 2:
+                        {
+                            Console.WriteLine("Voer in als: YYYY-MM-DD HH:mm,HH:mm");
+                            var s = Console.ReadLine();
+                            if (TryParse(s, out var datum, out var start, out var eind))
+                            {
+                                var beschikbaarheid = new Beschikbaarheid
+                                {
+                                    Id = Guid.NewGuid().GetHashCode(),
+                                    Datum = datum,
+                                    StartTijd = start,
+                                    EindTijd = eind
+                                };
 
-                        opgeslagen.Add(beschikbaarheid);
+                                Agenda.ToevoegenBeschikbaarheid(beschikbaarheid);
 
-                        localStorage.Store(key, opgeslagen);
-                        localStorage.Persist(); 
+                                var key = $"Beschikbaarheid:{Id}";
+                                var opgeslagen = localStorage.Exists(key)
+                                    ? localStorage.Get<List<Beschikbaarheid>>(key) ?? new List<Beschikbaarheid>()
+                                    : new List<Beschikbaarheid>();
 
-                        Console.WriteLine("✅ Beschikbaarheid toegevoegd.");
-                        Console.WriteLine($"Totaal beschikbaarheden (voor {Naam}): {opgeslagen.Count}");
+                                opgeslagen.Add(beschikbaarheid);
+
+                                localStorage.Store(key, opgeslagen);
+                                localStorage.Persist();
+
+                                Console.WriteLine("✅ Beschikbaarheid toegevoegd.");
+                                Console.WriteLine($"Totaal beschikbaarheden (voor {Naam}): {opgeslagen.Count}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Onjuiste datum/tijd-indeling.");
+                            }
+
+                            break;
+                        }
+
+                        default:
+                            Console.WriteLine("Ongeldige keuze.");
+                            break;
                     }
-                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Er is een fout opgetreden: {ex.Message}");
             }
         }
 

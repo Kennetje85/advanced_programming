@@ -1,8 +1,7 @@
 ﻿namespace PlanSysteem.Models
 {
-    // Geen pattern-specifieke wijziging; enum blijft ongewijzigd.
-    public enum rol 
-       
+    // Enkelvoudige, goed-naamgegeven enum voor rollen in het systeem.
+    public enum Rol
     {
         MedischeDienst,
         GeestelijkVerzorger,

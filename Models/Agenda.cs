@@ -1,4 +1,8 @@
-﻿namespace PlanSysteem.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace PlanSysteem.Models
 {
     public class Agenda
     {
@@ -7,7 +11,7 @@
 
         public IEnumerable<Beschikbaarheid> OphalenBeschikbaarheid(DateTime vanaf) =>
             _beschikbaarheden.Where(b => !b.IsGereserveerd && b.Start >= vanaf).OrderBy(b => b.Start);
-        
+
         public void ToevoegenBeschikbaarheid(Beschikbaarheid b) => _beschikbaarheden.Add(b);
 
         public Beschikbaarheid? Reserveer(int id)
@@ -17,9 +21,24 @@
             b.IsGereserveerd = true;
             return b;
         }
+
         public void VoegAfspraakToe(Afspraak a)
         {
             _afspraken.Add(a);
+        }
+
+        // Verwijder een afspraak uit deze agenda.
+        public void VerwijderAfspraak(Afspraak a)
+        {
+            if (a == null) return;
+            _afspraken.Remove(a);
+        }
+
+        // Maak een beschikbaarheid met gegeven id weer vrij.
+        public void MaakBeschikbaarheidVrij(int id)
+        {
+            var b = _beschikbaarheden.FirstOrDefault(x => x.Id == id);
+            if (b != null) b.IsGereserveerd = false;
         }
     }
 }

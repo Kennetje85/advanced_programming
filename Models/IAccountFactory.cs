@@ -1,53 +1,30 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using PlanSysteem.Factories;
 using PlanSysteem.Models;
 
-namespace PlanSysteem
+namespace PlanSysteem.Factories
 {
-    // Opmerking: dit bestand heet 'IAccountFactory.cs' maar bevat hier een 'Program' klasse.
-    // Overweeg het bestand te hernoemen naar 'Program.cs' voor duidelijkheid en consistentie.
-    public class Program
+    // Interface en factory voor Account-creatie.
+    // Aangepast: vierde parameter is nu IAccountOwner (geen object meer).
+    public interface IAccountFactory
     {
-        public static void Main()
+        Account Create(string gebruikersnaam, string wachtwoord, string rolNaam, IAccountOwner owner);
+    }
+
+    public class AccountFactory : IAccountFactory
+    {
+        public Account Create(string gebruikersnaam, string wachtwoord, string rolNaam, IAccountOwner owner)
         {
-            // Lees configuratie/definities van hulpinstanties uit een JSON-bestand.
-            // Aangepast: gebruik van een DTO ('HulpinstantieDto') en Factory ('HulpinstantieFactory')
-            // om object-creatie te centraliseren i.p.v. overal 'new' te gebruiken.
-            var json = File.ReadAllText("hulpinstanties.json");
-            var dtos = JsonSerializer.Deserialize<List<HulpinstantieDto>>(json) ?? new List<HulpinstantieDto>();
+            if (string.IsNullOrWhiteSpace(gebruikersnaam))
+                throw new ArgumentException("Gebruikersnaam is verplicht.", nameof(gebruikersnaam));
+            if (wachtwoord is null)
+                throw new ArgumentNullException(nameof(wachtwoord));
+            if (owner is null)
+                throw new ArgumentNullException(nameof(owner));
 
-            // Factory creëert concrete subtypes van Hulpinstantie op basis van de DTO.
-            var hulpFactory = new HulpinstantieFactory();
-            var hulpinstanties = hulpFactory.CreateMany(dtos).ToList();
+            if (!Enum.TryParse<Rol>(rolNaam ?? "", true, out var rol))
+                throw new ArgumentException($"Ongeldige rol: {rolNaam}", nameof(rolNaam));
 
-            // Voorbeeld: maak accounts via een aparte AccountFactory.
-            // Aangepast: centraliseert account-initialisatie (rol-vertaling, validatie, owner-koppeling).
-            var accountFactory = new AccountFactory();
-            foreach (var h in hulpinstanties)
-            {
-                // Bepaal rolnaam op basis van het concrete type.
-                // Let op: zorg dat de namen hier overeenkomen met de waarden in de enum `Rol`.
-                var rolNaam = h.GetType().Name switch
-                {
-                    "MedischeDienst" => "MedischeDienst",
-                    "GeestelijkVerzorger" => "GeestelijkVerzorger",
-                    "Casemanager" => "Casemanager",
-                    "Afdelingshoofd" => "Afdelingshoofd",
-                    _ => "MedischeDienst"
-                };
-
-                // Aangepast: maak account via factory. Hier gebruiken we tijdelijk een standaardwachtwoord.
-                // Productie: vervang dit door veilige wachtwoord-generatie of een secrets-oplossing.
-                h.Account = accountFactory.Create(h.Naam.ToLower(), "wachtwoord123", rolNaam, h);
-            }
-
-            // Einde bootstrap. Vanaf hier kan de rest van de applicatie verdergaan met de aangemaakte objecten.
-            // Tip: registreer de factories in een DI-container (__IServiceCollection.AddSingleton__ / __AddScoped__)
-            // zodat ze elders via dependency injection gebruikt kunnen worden.
+            return new Account(gebruikersnaam, wachtwoord, rol, owner);
         }
     }
 }

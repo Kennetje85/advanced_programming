@@ -16,18 +16,5 @@
     }
 }
 
-namespace PlanSysteem.Models
-{
-    // Geen pattern-specifieke wijziging; enum blijft ongewijzigd.
-    public enum Rol
-    {
-        MedischeDienst,
-        GeestelijkVerzorger,
-        Casemanager,
-        Afdelingshoofd,
-        Gedetineerde
-    }
-}
-
 
 
