@@ -3,40 +3,60 @@ using System.Collections.Generic;
 using System.Linq;
 using PlanSysteem.Factories;
 using PlanSysteem.Models;
+using PlanSysteem.Services;
 
 namespace PlanSysteem
 {
-
     public class Program
     {
-
         static void Main()
         {
             // 1) Domeinobjecten
             var md = new MedischeDienst { Id = 1, Naam = "Medische Dienst", MedischeRol = MedischeRol.Huisarts };
             var gv = new GeestelijkVerzorger { Id = 2, Naam = "Geestelijk Verzorger", Specialisatie = "Pastoor" };
             var cm = new Casemanager { Id = 3, Naam = "Casemanager" };
-
             var ah = new Afdelingshoofd { Id = 4, Naam = "Afdelingshoofd" };
             var hulpinstanties = new List<Hulpinstantie> { md, gv, cm, ah };
 
-
-            md.Agenda.ToevoegenBeschikbaarheid(new Beschikbaarheid  
+            // Attach storage subscriber and console logger to each agenda (Observer)
+            foreach (var h in hulpinstanties)
             {
-                Id = 101, Datum = DateTime.Today.AddDays(1), StartTijd = new TimeSpan(9, 0, 0),
+                // storage subscriber persists changes to LocalStorage
+                AgendaStorageSubscriber.Attach(h.Agenda);
+
+                // console logging (example subscriber)
+                var hulp = h;
+                hulp.Agenda.BeschikbaarheidToegevoegd += (s, e) =>
+                    Console.WriteLine($"[Event] Beschikbaarheid toegevoegd voor {hulp.Naam}: {e.Beschikbaarheid}");
+                hulp.Agenda.AfspraakToegevoegd += (s, e) =>
+                    Console.WriteLine($"[Event] Afspraak toegevoegd voor {hulp.Naam}: {e.Afspraak}");
+                hulp.Agenda.AfspraakVerwijderd += (s, e) =>
+                    Console.WriteLine($"[Event] Afspraak verwijderd voor {hulp.Naam}: {e.Afspraak}");
+                hulp.Agenda.BeschikbaarheidVrijgemaakt += (s, e) =>
+                    Console.WriteLine($"[Event] Beschikbaarheid vrijgemaakt voor {hulp.Naam}: {e.Beschikbaarheid}");
+            }
+
+
+
+            // Voorbeeld beschikbaarheden toevoegen (triggert events)
+            md.Agenda.ToevoegenBeschikbaarheid(new Beschikbaarheid
+            {
+                Id = 101,
+                Datum = DateTime.Today.AddDays(1),
+                StartTijd = new TimeSpan(9, 0, 0),
                 EindTijd = new TimeSpan(9, 30, 0)
             });
             gv.Agenda.ToevoegenBeschikbaarheid(new Beschikbaarheid
             {
-                Id = 201, Datum = DateTime.Today.AddDays(1), StartTijd = new TimeSpan(10, 0, 0),
+                Id = 201,
+                Datum = DateTime.Today.AddDays(1),
+                StartTijd = new TimeSpan(10, 0, 0),
                 EindTijd = new TimeSpan(10, 30, 0)
             });
 
             var ged = new Gedetineerde { Id = 1, Naam = "Jan", Celnummer = 12, Afdeling = "A" };
             cm.Caseload.Add(ged);
 
-
-            
             md.Account = new Account("medischedienst", "MD12", Rol.MedischeDienst, md);
             gv.Account = new Account("geestelijkverzorger", "GV02", Rol.GeestelijkVerzorger, gv);
             cm.Account = new Account("casemanager", "CM03", Rol.Casemanager, cm);

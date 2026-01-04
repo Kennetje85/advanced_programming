@@ -4,15 +4,37 @@ using System.Linq;
 
 namespace PlanSysteem.Models
 {
+    public sealed class AfspraakEventArgs : EventArgs
+    {
+        public Afspraak Afspraak { get; }
+        public AfspraakEventArgs(Afspraak afspraak) => Afspraak = afspraak;
+    }
+
+    public sealed class BeschikbaarheidEventArgs : EventArgs
+    {
+        public Beschikbaarheid Beschikbaarheid { get; }
+        public BeschikbaarheidEventArgs(Beschikbaarheid b) => Beschikbaarheid = b;
+    }
+
     public class Agenda
     {
         private readonly List<Beschikbaarheid> _beschikbaarheden = new();
         private readonly List<Afspraak> _afspraken = new();
 
+        // Observer events
+        public event EventHandler<BeschikbaarheidEventArgs>? BeschikbaarheidToegevoegd;
+        public event EventHandler<BeschikbaarheidEventArgs>? BeschikbaarheidVrijgemaakt;
+        public event EventHandler<AfspraakEventArgs>? AfspraakToegevoegd;
+        public event EventHandler<AfspraakEventArgs>? AfspraakVerwijderd;
+
         public IEnumerable<Beschikbaarheid> OphalenBeschikbaarheid(DateTime vanaf) =>
             _beschikbaarheden.Where(b => !b.IsGereserveerd && b.Start >= vanaf).OrderBy(b => b.Start);
 
-        public void ToevoegenBeschikbaarheid(Beschikbaarheid b) => _beschikbaarheden.Add(b);
+        public void ToevoegenBeschikbaarheid(Beschikbaarheid b)
+        {
+            _beschikbaarheden.Add(b);
+            OnBeschikbaarheidToegevoegd(b);
+        }
 
         public Beschikbaarheid? Reserveer(int id)
         {
@@ -25,20 +47,42 @@ namespace PlanSysteem.Models
         public void VoegAfspraakToe(Afspraak a)
         {
             _afspraken.Add(a);
+            OnAfspraakToegevoegd(a);
         }
 
         // Verwijder een afspraak uit deze agenda.
         public void VerwijderAfspraak(Afspraak a)
         {
             if (a == null) return;
-            _afspraken.Remove(a);
+            if (_afspraken.Remove(a))
+                OnAfspraakVerwijderd(a);
         }
 
         // Maak een beschikbaarheid met gegeven id weer vrij.
         public void MaakBeschikbaarheidVrij(int id)
         {
             var b = _beschikbaarheden.FirstOrDefault(x => x.Id == id);
-            if (b != null) b.IsGereserveerd = false;
+            if (b != null)
+            {
+                b.IsGereserveerd = false;
+                OnBeschikbaarheidVrijgemaakt(b);
+            }
         }
+
+        // Snapshot van afspraken (veilig itereren)
+        public IEnumerable<Afspraak> OphalenAfspraakSnapshot() => _afspraken.ToList();
+
+        // Protected raise-methods (volgt .NET pattern)
+        protected virtual void OnBeschikbaarheidToegevoegd(Beschikbaarheid b)
+            => BeschikbaarheidToegevoegd?.Invoke(this, new BeschikbaarheidEventArgs(b));
+
+        protected virtual void OnBeschikbaarheidVrijgemaakt(Beschikbaarheid b)
+            => BeschikbaarheidVrijgemaakt?.Invoke(this, new BeschikbaarheidEventArgs(b));
+
+        protected virtual void OnAfspraakToegevoegd(Afspraak a)
+            => AfspraakToegevoegd?.Invoke(this, new AfspraakEventArgs(a));
+
+        protected virtual void OnAfspraakVerwijderd(Afspraak a)
+            => AfspraakVerwijderd?.Invoke(this, new AfspraakEventArgs(a));
     }
 }
