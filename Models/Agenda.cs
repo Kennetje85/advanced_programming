@@ -50,7 +50,6 @@ namespace PlanSysteem.Models
             OnAfspraakToegevoegd(a);
         }
 
-        // Verwijder een afspraak uit deze agenda.
         public void VerwijderAfspraak(Afspraak a)
         {
             if (a == null) return;
@@ -58,7 +57,6 @@ namespace PlanSysteem.Models
                 OnAfspraakVerwijderd(a);
         }
 
-        // Maak een beschikbaarheid met gegeven id weer vrij.
         public void MaakBeschikbaarheidVrij(int id)
         {
             var b = _beschikbaarheden.FirstOrDefault(x => x.Id == id);
@@ -69,10 +67,8 @@ namespace PlanSysteem.Models
             }
         }
 
-        // Snapshot van afspraken (veilig itereren)
         public IEnumerable<Afspraak> OphalenAfspraakSnapshot() => _afspraken.ToList();
 
-        // Protected raise-methods (volgt .NET pattern)
         protected virtual void OnBeschikbaarheidToegevoegd(Beschikbaarheid b)
             => BeschikbaarheidToegevoegd?.Invoke(this, new BeschikbaarheidEventArgs(b));
 

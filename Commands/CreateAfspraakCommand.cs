@@ -10,12 +10,13 @@ namespace PlanSysteem.Commands
         private readonly Hulpinstantie _hulp;
         private readonly Beschikbaarheid _beschikbaarheid;
         private Afspraak? _afspraak;
+        private bool _isExecuted;
 
-        public CreateAfspraakCommand(Gedetineerde ged, Hulpinstantie hulp, Beschikbaarheid b)
+        public CreateAfspraakCommand(Gedetineerde ged, Hulpinstantie hulp, Beschikbaarheid beschikbaarheid)
         {
-            _ged = ged;
-            _hulp = hulp;
-            _beschikbaarheid = b;
+            _ged = ged ?? throw new ArgumentNullException(nameof(ged));
+            _hulp = hulp ?? throw new ArgumentNullException(nameof(hulp));
+            _beschikbaarheid = beschikbaarheid ?? throw new ArgumentNullException(nameof(beschikbaarheid));
         }
 
         public void Execute()

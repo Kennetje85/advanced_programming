@@ -1,7 +1,9 @@
-﻿using Hanssens.Net;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hanssens.Net;
+using PlanSysteem.Commands;
+using PlanSysteem.Services;
 
 namespace PlanSysteem.Models
 {
@@ -14,15 +16,20 @@ namespace PlanSysteem.Models
         public Agenda Agenda { get; } = new();
         public Account Account { get; set; } = default!;
 
-        // Hersteld: originele, robuuste console-flow met LocalStorage.
-        public void RunFlowGedetineerde(IEnumerable<Hulpinstantie> hulpinstanties)
+        // Command pattern:
+        // - Afspraak maken gebeurt via CommandManager.
+        // - Undo/redo is nu ook echt beschikbaar in de flow.
+        public void RunFlowGedetineerde(IEnumerable<Hulpinstantie> hulpinstanties, CommandManager commandManager)
         {
+            if (commandManager is null) throw new ArgumentNullException(nameof(commandManager));
+
             while (true)
             {
-                Console.WriteLine("1. Afspraken inzien\n2. Afspraak maken\n0. Uitloggen");
+                Console.WriteLine("1. Afspraken inzien\n2. Afspraak maken\n3. Undo\n4. Redo\n0. Uitloggen");
                 Console.Write("Keuze: ");
                 var input = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(input)) continue;
+
                 if (!int.TryParse(input, out var k))
                 {
                     Console.WriteLine("Ongeldige invoer.");
@@ -34,6 +41,7 @@ namespace PlanSysteem.Models
                     case 0:
                         Console.WriteLine("Uitloggen...");
                         return;
+
                     case 1:
                     {
                         using var ls = new LocalStorage();
@@ -56,11 +64,36 @@ namespace PlanSysteem.Models
                                 Console.WriteLine($"{i + 1}. {regels[i]}");
                             }
                         }
+
                         break;
                     }
 
                     case 2:
-                        MaakAfspraak(hulpinstanties);
+                        MaakAfspraak(hulpinstanties, commandManager);
+                        break;
+
+                    case 3:
+                        if (commandManager.CanUndo)
+                        {
+                            commandManager.Undo();
+                            Console.WriteLine("✅ Laatste actie ongedaan gemaakt.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Niets om ongedaan te maken.");
+                        }
+                        break;
+
+                    case 4:
+                        if (commandManager.CanRedo)
+                        {
+                            commandManager.Redo();
+                            Console.WriteLine("✅ Laatste actie opnieuw uitgevoerd.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Niets om opnieuw uit te voeren.");
+                        }
                         break;
 
                     default:
@@ -70,7 +103,7 @@ namespace PlanSysteem.Models
             }
         }
 
-        private void MaakAfspraak(IEnumerable<Hulpinstantie> hulpinstanties)
+        private void MaakAfspraak(IEnumerable<Hulpinstantie> hulpinstanties, CommandManager commandManager)
         {
             var lijst = hulpinstanties.ToList();
             if (!lijst.Any())
@@ -89,7 +122,12 @@ namespace PlanSysteem.Models
                 }
 
                 var keuzeHInput = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(keuzeHInput)) { Console.WriteLine("Ongeldige invoer."); continue; }
+                if (string.IsNullOrWhiteSpace(keuzeHInput))
+                {
+                    Console.WriteLine("Ongeldige invoer.");
+                    continue;
+                }
+
                 if (!int.TryParse(keuzeHInput, out var keuzeH) || keuzeH < 0 || keuzeH > lijst.Count)
                 {
                     Console.WriteLine("Ongeldige keuze.");
@@ -138,7 +176,12 @@ namespace PlanSysteem.Models
                     }
 
                     var keuzeBInput = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(keuzeBInput)) { Console.WriteLine("Ongeldige invoer."); continue; }
+                    if (string.IsNullOrWhiteSpace(keuzeBInput))
+                    {
+                        Console.WriteLine("Ongeldige invoer.");
+                        continue;
+                    }
+
                     if (!int.TryParse(keuzeBInput, out var keuzeB) || keuzeB < 0 || keuzeB > opties.Count)
                     {
                         Console.WriteLine("Ongeldige keuze.");
@@ -152,42 +195,9 @@ namespace PlanSysteem.Models
                     }
 
                     var gekozenSlot = opties[keuzeB - 1];
-                    var gereserveerd = hulp.Agenda.Reserveer(gekozenSlot.Id);
-                    if (gereserveerd is null)
-                    {
-                        Console.WriteLine("Niet beschikbaar (mogelijk net gereserveerd).");
-                        return;
-                    }
+                    var command = new CreateAfspraakCommand(this, hulp, gekozenSlot);
 
-                    var afspraak = new Afspraak(this, hulp, gereserveerd, $"Afspraak met {hulp.Naam}");
-                    afspraak.Bevestigen();
-
-                    hulp.Agenda.VoegAfspraakToe(afspraak);
-                    Agenda.VoegAfspraakToe(afspraak);
-
-                    string regelVoorGedetineerde =
-                        $"{gekozenSlot.Datum:yyyy-MM-dd} {gekozenSlot.StartTijd:hh\\:mm}-{gekozenSlot.EindTijd:hh\\:mm} — met {hulp.Naam} — {afspraak.Titel}";
-                    string regelVoorHulp =
-                        $"{gekozenSlot.Datum:yyyy-MM-dd} {gekozenSlot.StartTijd:hh\\:mm}-{gekozenSlot.EindTijd:hh\\:mm} — met {Naam} — {afspraak.Titel}";
-
-                    void Append(string k, string line)
-                    {
-                        var list = ls.Exists(k)
-                            ? ls.Get<List<string>>(k) ?? new List<string>()
-                            : new List<string>();
-                        list.Add(line);
-                        ls.Store(k, list);
-                    }
-
-                    Append($"Afspraken:gedetineerde:{Id}", regelVoorGedetineerde);
-                    Append($"Afspraken:hulp:{hulp.Id}", regelVoorHulp);
-                    ls.Persist();
-
-                    // Debug: toon wat er nu in storage staat voor beide keys
-                    var storedGed = ls.Get<List<string>>($"Afspraken:gedetineerde:{Id}") ?? new List<string>();
-                    var storedHulp = ls.Get<List<string>>($"Afspraken:hulp:{hulp.Id}") ?? new List<string>();
-                    Console.WriteLine($"(Debug) Afspraken opgeslagen voor gedetineerde {Id}: {storedGed.Count}");
-                    Console.WriteLine($"(Debug) Afspraken opgeslagen voor hulp {hulp.Id}: {storedHulp.Count}");
+                    commandManager.ExecuteCommand(command);
 
                     Console.WriteLine("✅ Afspraak gemaakt, bevestigd en opgeslagen.");
                     return;

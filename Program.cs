@@ -11,6 +11,8 @@ namespace PlanSysteem
     {
         static void Main()
         {
+            var commandManager = new CommandManager();
+
             // 1) Domeinobjecten
             var md = new MedischeDienst { Id = 1, Naam = "Medische Dienst", MedischeRol = MedischeRol.Huisarts };
             var gv = new GeestelijkVerzorger { Id = 2, Naam = "Geestelijk Verzorger", Specialisatie = "Pastoor" };
@@ -21,10 +23,8 @@ namespace PlanSysteem
             // Attach storage subscriber and console logger to each agenda (Observer)
             foreach (var h in hulpinstanties)
             {
-                // storage subscriber persists changes to LocalStorage
                 AgendaStorageSubscriber.Attach(h.Agenda);
 
-                // console logging (example subscriber)
                 var hulp = h;
                 hulp.Agenda.BeschikbaarheidToegevoegd += (s, e) =>
                     Console.WriteLine($"[Event] Beschikbaarheid toegevoegd voor {hulp.Naam}: {e.Beschikbaarheid}");
@@ -36,9 +36,6 @@ namespace PlanSysteem
                     Console.WriteLine($"[Event] Beschikbaarheid vrijgemaakt voor {hulp.Naam}: {e.Beschikbaarheid}");
             }
 
-
-
-            // Voorbeeld beschikbaarheden toevoegen (triggert events)
             md.Agenda.ToevoegenBeschikbaarheid(new Beschikbaarheid
             {
                 Id = 101,
@@ -80,7 +77,7 @@ namespace PlanSysteem
             switch (acc.Owner)
             {
                 case Gedetineerde g:
-                    g.RunFlowGedetineerde(hulpinstanties);
+                    g.RunFlowGedetineerde(hulpinstanties, commandManager);
                     break;
                 case Hulpinstantie h:
                     h.RunFlowHulpinstantie();

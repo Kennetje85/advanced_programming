@@ -1,6 +1,6 @@
 namespace PlanSysteem.Commands
 {
-    //Dit toegevoegd voor datastructuren
+    // Command pattern contract: elke command kan worden uitgevoerd en ongedaan gemaakt.
     public interface ICommand
     {
         void Execute();
