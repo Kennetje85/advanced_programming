@@ -11,14 +11,18 @@ namespace PlanSysteem
     {
         static void Main()
         {
-            var commandManager = new CommandManager();
+            var factory = new HulpinstantieFactory();
 
-            // 1) Domeinobjecten
-            var md = new MedischeDienst { Id = 1, Naam = "Medische Dienst", MedischeRol = MedischeRol.Huisarts };
-            var gv = new GeestelijkVerzorger { Id = 2, Naam = "Geestelijk Verzorger", Specialisatie = "Pastoor" };
-            var cm = new Casemanager { Id = 3, Naam = "Casemanager" };
-            var ah = new Afdelingshoofd { Id = 4, Naam = "Afdelingshoofd" };
-            var hulpinstanties = new List<Hulpinstantie> { md, gv, cm, ah };
+            var hulpinstanties = factory.CreateMany(new[]
+            {
+
+                new HulpinstantieDto(1, "MedischeDienst", "Medische Dienst", null, null, "Huisarts"),
+                new HulpinstantieDto(2, "GeestelijkVerzorger", "Geestelijk Verzorger", "Pastoor", null, null),
+                new HulpinstantieDto(3, "Casemanager", "Casemanager", null, null, null),
+                new HulpinstantieDto(4, "Afdelingshoofd", "Afdelingshoofd", null, "A", null)
+            }).ToList();
+
+            var commandManager = new CommandManager();
 
             // Attach storage subscriber and console logger to each agenda (Observer)
             foreach (var h in hulpinstanties)
@@ -36,6 +40,7 @@ namespace PlanSysteem
                     Console.WriteLine($"[Event] Beschikbaarheid vrijgemaakt voor {hulp.Naam}: {e.Beschikbaarheid}");
             }
 
+            var md = hulpinstanties.OfType<MedischeDienst>().First();
             md.Agenda.ToevoegenBeschikbaarheid(new Beschikbaarheid
             {
                 Id = 101,
@@ -43,6 +48,7 @@ namespace PlanSysteem
                 StartTijd = new TimeSpan(9, 0, 0),
                 EindTijd = new TimeSpan(9, 30, 0)
             });
+            var gv = hulpinstanties.OfType<GeestelijkVerzorger>().First();
             gv.Agenda.ToevoegenBeschikbaarheid(new Beschikbaarheid
             {
                 Id = 201,
@@ -51,8 +57,10 @@ namespace PlanSysteem
                 EindTijd = new TimeSpan(10, 30, 0)
             });
 
+            var cm = hulpinstanties.OfType<Casemanager>().First();
             var ged = new Gedetineerde { Id = 1, Naam = "Jan", Celnummer = 12, Afdeling = "A" };
             cm.Caseload.Add(ged);
+            var ah = hulpinstanties.OfType<Afdelingshoofd>().First();
 
             md.Account = new Account("medischedienst", "MD12", Rol.MedischeDienst, md);
             gv.Account = new Account("geestelijkverzorger", "GV02", Rol.GeestelijkVerzorger, gv);
