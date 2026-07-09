@@ -4,9 +4,13 @@ using PlanSysteem.Models;
 
 namespace PlanSysteem.Factories
 {
+
+    //Geef mij een HulpinstantieDto en ik geef een Hulpinstantie terug
     public interface IHulpinstantieFactory
     {
         Hulpinstantie Create(HulpinstantieDto dto);
+
+        //Lijst met hulpinstanties maken van een lijst met HulpinstantieDto's
         IEnumerable<Hulpinstantie> CreateMany(IEnumerable<HulpinstantieDto> dtos);
     }
 
@@ -40,12 +44,16 @@ namespace PlanSysteem.Factories
                 afdeling = dto.Afdeling
             };
 
+
+        
+
             return dto.Type switch
             {
                 "MedischeDienst" => md,
                 "GeestelijkVerzorger" => gv,
                 "Casemanager" => cm,
                 "Afdelingshoofd" => ah,
+             //   "Psychologie" => ps,
                 _ => throw new ArgumentException($"Onbekend type: {dto.Type}", nameof(dto))
             };
         }

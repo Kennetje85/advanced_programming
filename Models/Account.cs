@@ -16,6 +16,12 @@ namespace PlanSysteem.Models
             Wachtwoord = pass ?? "";
             Rol = rol;
             Owner = owner ?? throw new ArgumentNullException(nameof(owner));
+            //Onoverzichtelijk : de eigenaar kan van verschillende typen zijn, afhankelijk van de rol. Daarom gebruiken we IAccountOwner als type.
+            // public Gedetineerde Gedetineerde { get; }
+            //  public MedischeDienst MedischeDienst { get; }
+            //  public Casemanager Casemanager { get; }
+
+
         }
 
         public bool VerifyPassword(string password) => Wachtwoord == password;

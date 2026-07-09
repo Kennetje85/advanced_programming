@@ -15,7 +15,7 @@ namespace PlanSysteem.Models
         public Beschikbaarheid Beschikbaarheid { get; }
         public BeschikbaarheidEventArgs(Beschikbaarheid b) => Beschikbaarheid = b;
     }
-
+    //List<T>
     public class Agenda
     {
         private readonly List<Beschikbaarheid> _beschikbaarheden = new();
@@ -30,6 +30,8 @@ namespace PlanSysteem.Models
         public IEnumerable<Beschikbaarheid> OphalenBeschikbaarheid(DateTime vanaf) =>
             _beschikbaarheden.Where(b => !b.IsGereserveerd && b.Start >= vanaf).OrderBy(b => b.Start);
 
+
+        // Big-o notation for the methods: 0(1)
         public void ToevoegenBeschikbaarheid(Beschikbaarheid b)
         {
             _beschikbaarheden.Add(b);

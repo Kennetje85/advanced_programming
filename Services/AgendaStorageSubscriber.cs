@@ -11,10 +11,13 @@ namespace PlanSysteem.Services
         public static void Attach(Agenda agenda)
         {
             if (agenda is null) return;
+
+            //Hier wordt de klasse geabonneerd op events.
             agenda.AfspraakToegevoegd += OnAfspraakToegevoegd;
             agenda.AfspraakVerwijderd += OnAfspraakVerwijderd;
             agenda.BeschikbaarheidToegevoegd += OnBeschikbaarheidToegevoegd;
             agenda.BeschikbaarheidVrijgemaakt += OnBeschikbaarheidVrijgemaakt;
+          
         }
 
         private static void OnAfspraakToegevoegd(object? sender, AfspraakEventArgs e)

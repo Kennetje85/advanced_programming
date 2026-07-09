@@ -13,14 +13,21 @@ namespace PlanSysteem
         {
             var factory = new HulpinstantieFactory();
 
+
+
             var hulpinstanties = factory.CreateMany(new[]
             {
 
                 new HulpinstantieDto(1, "MedischeDienst", "Medische Dienst", null, null, "Huisarts"),
                 new HulpinstantieDto(2, "GeestelijkVerzorger", "Geestelijk Verzorger", "Pastoor", null, null),
                 new HulpinstantieDto(3, "Casemanager", "Casemanager", null, null, null),
-                new HulpinstantieDto(4, "Afdelingshoofd", "Afdelingshoofd", null, "A", null)
+                new HulpinstantieDto(4, "Afdelingshoofd", "Afdelingshoofdd", null, "A", null),
+          //      new HulpinstantieDto(5, "Psychologie", "Psycholoog", null, "B", null)
             }).ToList();
+
+
+
+
 
             var commandManager = new CommandManager();
 
@@ -62,29 +69,73 @@ namespace PlanSysteem
             cm.Caseload.Add(ged);
             var ah = hulpinstanties.OfType<Afdelingshoofd>().First();
 
-            md.Account = new Account("medischedienst", "MD12", Rol.MedischeDienst, md);
-            gv.Account = new Account("geestelijkverzorger", "GV02", Rol.GeestelijkVerzorger, gv);
-            cm.Account = new Account("casemanager", "CM03", Rol.Casemanager, cm);
-            ah.Account = new Account("afdelingshoofd", "AH04", Rol.Afdelingshoofd, ah);
-            ged.Account = new Account("gedetineerde", "GD01", Rol.Gedetineerde, ged);
+            // md.Account = new Account("medischedienst", "MD12", Rol.MedischeDienst, md);
+            // gv.Account = new Account("geestelijkverzorger", "GV02", Rol.GeestelijkVerzorger, gv);
+            // cm.Account = new Account("casemanager", "CM03", Rol.Casemanager, cm);
+            // ah.Account = new Account("afdelingshoofd", "AH04", Rol.Afdelingshoofd, ah);
+            // ged.Account = new Account("gedetineerde", "GD01", Rol.Gedetineerde, ged);
+
+            // Program.cs blijft netter en makkelijker uitbreidbaar.
+            var accountFactory = new AccountFactory();
+
+            md.Account = accountFactory.Create(
+                "medischedienst",
+                "MD12",
+                "MedischeDienst",
+                md);
+
+            gv.Account = accountFactory.Create(
+                "geestelijkverzorger",
+                "GV02",
+                "GeestelijkVerzorger",
+                gv);
+
+            cm.Account = accountFactory.Create(
+                "casemanager",
+                "CM03",
+                "Casemanager",
+                cm);
+
+            ah.Account = accountFactory.Create(
+                "afdelingshoofd",
+                "AH04",
+                "Afdelingshoofd",
+                ah);
+
+            ged.Account = accountFactory.Create(
+                "gedetineerde",
+                "GD01",
+                "Gedetineerde",
+                ged);
+
+
 
             var accounts = new List<Account> { md.Account, gv.Account, cm.Account, ah.Account, ged.Account };
 
-            Console.Write("Gebruikersnaam: ");
-            var u = Console.ReadLine();
-            Console.Write("Wachtwoord: ");
-            var p = Console.ReadLine();
-            var acc = accounts.FirstOrDefault(a => a.Inloggen(u!, p!));
-            if (acc is null)
+            Account? acc = null;
+
+            while (acc == null)
             {
-                Console.WriteLine("Onjuist.");
-                return;
+                Console.Write("Gebruikersnaam: ");
+                var u = Console.ReadLine();
+
+                Console.Write("Wachtwoord: ");
+                var p = Console.ReadLine();
+
+                acc = accounts.FirstOrDefault(a => a.Inloggen(u!, p!));
+
+                if (acc == null)
+                {
+                    Console.WriteLine("Onjuist. Probeer opnieuw.");
+                }
             }
+
 
             Console.WriteLine($"✅ Ingelogd als {acc.Rol}");
             switch (acc.Owner)
             {
                 case Gedetineerde g:
+                    Console.WriteLine("Start gedetineerde flow");
                     g.RunFlowGedetineerde(hulpinstanties, commandManager);
                     break;
                 case Hulpinstantie h:
